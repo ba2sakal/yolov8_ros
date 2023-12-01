@@ -70,11 +70,7 @@ def generate_launch_description():
         "namespace",
         default_value="yolo",
         description="Namespace for the nodes")
-    
 
-    # Get the package and params directory
-    image_segmentation_dir = get_package_share_directory('image_segmentation_r2')
-    config = os.path.join(image_segmentation_dir, "config","params.yaml")
 
     # Declare launch arguments
     use_sim_time = DeclareLaunchArgument(
@@ -139,6 +135,17 @@ def generate_launch_description():
                     ("detections", "tracking")]
     )
 
+    viewer_node = Node(
+        package='image_view',
+        executable='image_view',
+        name='segmentation_viewer',
+        remappings=[
+            ('image', '/yolo/dbg_image'),
+        ],
+        parameters=[
+                {'autosize': True},
+        ]
+    )
     ld = LaunchDescription()
 
     ld.add_action(model_cmd)
@@ -148,6 +155,10 @@ def generate_launch_description():
     ld.add_action(threshold_cmd)
     ld.add_action(input_image_topic_cmd)
     ld.add_action(namespace_cmd)
+
+    ld.add_action(rosbag_play_node)
+    ld.add_action(image_decompression_node)
+    ld.add_action(viewer_node)
 
     ld.add_action(detector_node_cmd)
     ld.add_action(tracking_node_cmd)
