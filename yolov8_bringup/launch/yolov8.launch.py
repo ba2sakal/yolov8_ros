@@ -13,11 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
+from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
+from launch.actions import ExecuteProcess
+
 
 
 def generate_launch_description():
@@ -66,10 +70,45 @@ def generate_launch_description():
         "namespace",
         default_value="yolo",
         description="Namespace for the nodes")
+    
 
+    # Get the package and params directory
+    image_segmentation_dir = get_package_share_directory('image_segmentation_r2')
+    config = os.path.join(image_segmentation_dir, "config","params.yaml")
+
+    # Declare launch arguments
+    use_sim_time = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Use simulation clock time')
     #
     # NODES
     #
+
+    # ROSBAG PLAY node
+    rosbag_play_node = ExecuteProcess(
+        cmd=['ros2', 'bag', 'play', '--rate', '1', '-l',
+             '/home/rosuser/ws/bag/2023-06-30-08-02-13_fixed_v5.db3',
+             '--topics', '/drivers/zed_camera/front_center/left/camera_info',
+             '/drivers/zed_camera/front_center/left/image_rect_color/compressed',
+              #'--remap', '/drivers/zed_camera/front_center/left/camera_info:=/camera/depth/camera_info',
+             ],
+        output='screen'
+    )
+
+    # IMAGE DECOMPRESSION NODE
+    image_decompression_node = Node(
+        package='image_transport',
+        name='compressed_image_transport',
+        executable='republish',
+        remappings=[
+            ('in/compressed', '/drivers/zed_camera/front_center/left/image_rect_color/compressed'),
+            ('out', '/camera/rgb/image_raw')
+        ],
+       arguments=['compressed', 'raw'],
+    )
+
+
     detector_node_cmd = Node(
         package="yolov8_ros",
         executable="yolov8_node",

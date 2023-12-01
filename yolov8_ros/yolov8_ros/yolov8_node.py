@@ -38,7 +38,6 @@ from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 from std_srvs.srv import SetBool
 
-
 class Yolov8Node(Node):
 
     def __init__(self) -> None:
@@ -177,11 +176,12 @@ class Yolov8Node(Node):
     def image_cb(self, msg: Image) -> None:
 
         if self.enable:
+           
+            # Convert image from ROS message to OpenCV image
+            cv_image_bgr = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 
-            # convert image + predict
-            cv_image = self.cv_bridge.imgmsg_to_cv2(msg)
             results = self.yolo.predict(
-                source=cv_image,
+                source=cv_image_bgr,
                 verbose=False,
                 stream=False,
                 conf=self.threshold,
